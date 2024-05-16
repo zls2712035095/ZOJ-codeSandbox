@@ -1,10 +1,10 @@
 package com.zack.zojcodesandbox.utils;
 
+import cn.hutool.core.util.StrUtil;
 import com.zack.zojcodesandbox.model.ExecuteMessage;
+import org.springframework.util.StopWatch;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 
 /**
  * 进程工具类
@@ -23,6 +23,8 @@ public class ProcessUtils {
 
 
         try {
+            StopWatch stopWatch = new StopWatch();
+            stopWatch.start();
             // 等待程序执行,获取错误码
             int exitValue = runProcess.waitFor();
             executeMessage.setExitValue(exitValue);
@@ -59,6 +61,8 @@ public class ProcessUtils {
                 }
                 executeMessage.setErrorMessage(errorCompileOutputStringBuilder.toString());
             }
+            stopWatch.stop();
+            executeMessage.setTime(stopWatch.getLastTaskTimeMillis());
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
             //throw new RuntimeException(e);
@@ -66,4 +70,47 @@ public class ProcessUtils {
         return executeMessage;
     }
 
+    /**
+     * 执行IO交互式进程并获取信息
+     *
+     * @param runProcess
+     * @param opName
+     * @return
+     */
+    public static ExecuteMessage runIOProcessAndGetMessage(Process runProcess, String opName, String args) {
+        ExecuteMessage executeMessage = new ExecuteMessage();
+
+        try {
+            // 向控制台输入程序
+            InputStream inputStream = runProcess.getInputStream();
+            OutputStream outputStream = runProcess.getOutputStream();
+            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
+//            String s[] = args.split(" ");
+//            String join = StrUtil.join("\n", s) + "\n";
+            outputStreamWriter.write(args + "\n");
+
+            // 相当于按了回车，执行输入的发送
+            outputStreamWriter.flush();
+
+            // 分批获取进程的正常输出
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+            StringBuilder compileOutputStringBuilder = new StringBuilder();
+            // 逐行读取
+            String compileOutputLine;
+            while ((compileOutputLine = bufferedReader.readLine()) != null) {
+                compileOutputStringBuilder.append(compileOutputLine);
+            }
+            executeMessage.setMessage(compileOutputStringBuilder.toString());
+
+            // 释放资源
+            outputStreamWriter.close();
+            inputStream.close();
+            outputStream.close();
+            runProcess.destroy();
+        } catch (IOException e) {
+            e.printStackTrace();
+            //throw new RuntimeException(e);
+        }
+        return executeMessage;
+    }
 }
