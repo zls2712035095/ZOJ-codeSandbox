@@ -41,19 +41,19 @@ public class DockerDemo {
                 .exec();
         System.out.println(createContainerResponse);
         String containerId = createContainerResponse.getId();
-
+//
         // 查看容器状态
         ListContainersCmd listContainersCmd = dockerClient.listContainersCmd();
         List<Container> containerList = listContainersCmd.withShowAll(true).exec();
         for (Container container : containerList) {
             System.out.println(container);
         }
-
+//
         // 启动容器
         dockerClient.startContainerCmd(containerId).exec();
-
+//
 //        Thread.sleep(5000L);
-
+//
         // 查看日志
 
         LogContainerResultCallback logContainerResultCallback = new LogContainerResultCallback() {
